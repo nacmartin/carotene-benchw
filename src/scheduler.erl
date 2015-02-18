@@ -24,8 +24,7 @@ init([Sup]) ->
 
 handle_info(trigger, {Sup, Phase}) ->
     lists:foldl(fun(_E, I) -> supervisor:start_child(worker_sup, []),
-%                              timer:sleep(5),
-                              I+1 end, 0, lists:seq(1, 1000)),
+                              I+1 end, 0, lists:seq(1, 10000)),
     erlang:send_after(?INTERVAL, self(), trigger),
     {noreply, {Sup, Phase}}.
 
