@@ -1,0 +1,13 @@
+{application, carotene_benchw,
+ [
+  {description, "Benchmark for carotene websockets"},
+  {vsn, "0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { carotene_benchw_app, []}},
+  {modules, []},
+  {env, []}
+ ]}.
