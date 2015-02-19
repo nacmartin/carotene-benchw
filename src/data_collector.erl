@@ -9,7 +9,7 @@
 
 -record(data, {samples, requests, responses, sup}).
 
--define(INTERVAL, 1000).
+-define(INTERVAL, 10000).
 
 start_link(Sup) ->
     Opts = [],

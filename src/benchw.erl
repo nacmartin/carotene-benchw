@@ -3,39 +3,48 @@
 -behaviour(websocket_client_handler).
 
 -export([
-         start_link/0,
+         start_link/1,
          init/2,
          websocket_handle/3,
          websocket_info/3,
-         websocket_terminate/3
+         websocket_terminate/3,
+         get_random_string/0
         ]).
 
-start_link() ->
-    websocket_client:start_link("ws://localhost:8080/websocket", ?MODULE, []).
+start_link(Room) ->
+    websocket_client:start_link("ws://arizona:9090/websocket", ?MODULE, [Room]).
 
-init([], _ConnState) ->
+init([Room], _ConnState) ->
     random:seed(erlang:now()),
-    Rdstr = get_random_string(),
-    Msg = jsx:encode([{joinexchange, Rdstr}]),
+    Msg = jsx:encode([{joinexchange, Room}]),
     websocket_client:cast(self(), {text, Msg}),
-    Msg2 = jsx:encode([{send, hola}, {exchange, Rdstr}]),
+    MsgExpected = get_random_string(),
+    Msg2 = jsx:encode([{send, MsgExpected}, {exchange, Room}]),
     websocket_client:cast(self(), {text, Msg2}),
     gen_server:cast(data_collector, message_sent),
-    {ok, {1, Msg2, erlang:now()}}.
+    {ok, {1, Room, MsgExpected, erlang:now()}}.
 
 websocket_handle({pong, _}, _ConnState, State) ->
     {ok, State};
-websocket_handle({text, Msg}, _ConnState, {NumMsg, Room, Timestamp}) ->
-    gen_server:cast(data_collector, {message_received, timer:now_diff(erlang:now(), Timestamp)}),
-    case NumMsg of
-        6000 ->
-            {close, <<>>, "done"};
+websocket_handle({text, Msg}, _ConnState, {NumMsg, Room, MsgExpected, Timestamp}) ->
+    Received = jsx:decode(Msg),
+    {_, MsgInternal} = lists:keyfind(<<"message">>, 1, Received),
+    case MsgInternal of
+        MsgExpected ->
+            gen_server:cast(data_collector, {message_received, timer:now_diff(erlang:now(), Timestamp)}),
+            case NumMsg of
+                6000 ->
+                    {close, <<>>, "done"};
+                _ ->
+                    timer:sleep(1000),
+                    Msg2 = jsx:encode([{send, MsgExpected}, {exchange, Room}]),
+                    websocket_client:cast(self(), {text, Msg2}),
+                    gen_server:cast(data_collector, message_sent),
+                    NumMsg2 = NumMsg + 1,
+                    {ok, {NumMsg2, Room, MsgExpected, erlang:now()}}
+            end;
         _ ->
-            timer:sleep(10),
-            websocket_client:cast(self(), {text, Room}),
-            gen_server:cast(data_collector, message_sent),
-            NumMsg2 = NumMsg + 1,
-            {ok, {NumMsg2, Room, erlang:now()}}
+            {ok, {NumMsg, Room, MsgExpected, Timestamp}}
     end.
 
 
