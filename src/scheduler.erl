@@ -7,7 +7,7 @@
 -export([init/1, terminate/2, code_change/3, handle_call/3,
          handle_cast/2, handle_info/2]).
 
--define(INTERVAL, 1000).
+-define(INTERVAL, 5).
 
 start_link(Sup) ->
     Opts = [],
@@ -20,15 +20,28 @@ stop(Pid) ->
 
 init([Sup]) ->
     erlang:send_after(?INTERVAL, self(), trigger),
-    {ok, {Sup, roomof10}}.
+%    erlang:send_after(?INTERVAL, self(), trigger),
+%    erlang:send_after(?INTERVAL, self(), trigger),
+%    erlang:send_after(?INTERVAL, self(), trigger),
+%    erlang:send_after(?INTERVAL, self(), trigger),
+%    erlang:send_after(?INTERVAL, self(), trigger),
+%    erlang:send_after(?INTERVAL, self(), trigger),
+%    erlang:send_after(?INTERVAL, self(), trigger),
+%    erlang:send_after(?INTERVAL, self(), trigger),
+%    erlang:send_after(?INTERVAL, self(), trigger),
+    {ok, {Sup, bigroom}}.
 
 handle_info(trigger, {Sup, Phase}) ->
     case Phase of
         allsameroom -> 
-            Room = benchw:get_random_string(),
-            lists:foldl(fun(_E, I) -> supervisor:start_child(worker_sup, [Room]),
-                        I+1 end, 0, lists:seq(1, 10000)),
-            erlang:send_after(?INTERVAL, self(), trigger);
+            Room = <<"room3">>, %benchw:get_random_string(),
+	    supervisor:start_child(worker_sup, [Room]),
+	    erlang:send_after(?INTERVAL, self(), trigger);
+        bigroom -> 
+            Room2 = <<"room3">>, %benchw:get_random_string(),
+            lists:foldl(fun(_E, I) ->
+                        supervisor:start_child(worker_sup, [Room2]),
+                        I+1 end, 0, lists:seq(1, 2999));
         everyinitsroom -> 
             lists:foldl(fun(_E, I) ->
                         Room2 = benchw:get_random_string(),
